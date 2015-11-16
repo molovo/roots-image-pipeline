@@ -16,7 +16,7 @@ module.exports = (opts) ->
     jpegtran:
       progressive: true
     optipng:
-      optimizationLevel: 3
+      optimizationLevel: 7
     gifsicle:
       interlaced: true
     svgo: {}
@@ -66,6 +66,7 @@ module.exports = (opts) ->
 
       @roots.config.locals.image = (filename = '', image_opts = {}) =>
         image_opt = _.defaults image_opts,
+          retina: true     # Include @2X images
           prefix: opt.out  # File path prefix
           sizes: false     # Optional array containing source sizes
 
@@ -80,40 +81,59 @@ module.exports = (opts) ->
         @picture = []
         for size in image_opt.sizes
           ((file_path, size) =>
+            input = path.join(
+              @roots.config.output
+              @util.output_path(file_path).relative
+            )
+
+            # Build the filename to use for the new, resized file
+            size_string = ""
+            size_string += "-#{size.width}w" if size.width
+            size_string += "-#{size.height}h" if size.height
+
             # Create an object containing options for resizing
             resize_opts =
-              media: size.media
               width: size.width
               height: size.height
 
-            # Build the filename to use for the new, resized file
-            ext = ""
-            ext += "-#{size.width}w" if size.width
-            ext += "-#{size.height}h" if size.height
-            ext += "#{path.extname(file_path)}"
-            resized_file_path = file_path.replace(path.extname(file_path), ext)
-
-            # Trigger the resize asynchronously
-            resize_image.call(
-              @
-              path.join(
-                @roots.config.output
-                @util.output_path(file_path).relative
-              )
-              path.join(
-                @roots.config.output
-                @util.output_path(resized_file_path).relative
-              )
-              resize_opts
+            ext = "#{size_string}#{path.extname(file_path)}"
+            resized = file_path.replace(path.extname(file_path), ext)
+            output = path.join(
+              @roots.config.output
+              @util.output_path(resized).relative
             )
 
+            # Trigger the resize asynchronously
+            resize_image.call @, input, output, resize_opts
+
+            if image_opt.retina
+              resize_opts_2x =
+                width: size.width * 2
+                height: size.height * 2
+
+              ext_2x = "#{size_string}-@2X#{path.extname(file_path)}"
+              resized_2x = file_path.replace(path.extname(file_path), ext_2x)
+              output_2x = path.join(
+                @roots.config.output
+                @util.output_path(resized_2x).relative
+              )
+
+              # Trigger the resize asynchronously
+              resize_image.call @, input, output_2x, resize_opts_2x
+
             # Render a basic image tag for the fallback
-            if resize_opts.media == 'fallback'
-              return @picture.push "<img src='/#{resized_file_path}'>"
+            if size.media == 'fallback'
+              return @picture.push "<img src='/#{resized}'>"
 
             # Add a source element for each of the provided sizes
-            @picture.push "<source srcset='/#{resized_file_path}'
-                                   media='#{resize_opts.media}'>"
+            srcset = "/#{resized} 1x"
+            srcset += ", /#{resized_2x} 2x" if image_opt.retina
+
+            source = "<source srcset='#{srcset}'"
+            source += " media='#{size.media}'" if size.media?
+            source += ">"
+
+            @picture.push source
           )(file_path, size)
 
         # Output the picture element in our template
