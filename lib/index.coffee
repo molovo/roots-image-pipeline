@@ -66,8 +66,8 @@ module.exports = (opts) ->
 
       @roots.config.locals.image = (filename = '', image_opts = {}) =>
         image_opt = _.defaults image_opts,
-          prefix: '/' + opt.out        # File path prefix
-          sizes: false            # Optional array containing source sizes
+          prefix: opt.out  # File path prefix
+          sizes: false     # Optional array containing source sizes
 
         # Get the file path for rendering in browser
         file_path = path.join image_opt.prefix, filename
