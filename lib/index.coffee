@@ -3,6 +3,7 @@ path        = require 'path'
 _           = require 'lodash'
 minimatch   = require 'minimatch'
 Imagemin    = require 'imagemin'
+pngquant    = require 'imagemin-pngquant'
 RootsUtil   = require 'roots-util'
 yaml        = require 'js-yaml'
 gm          = require 'gm'
@@ -15,8 +16,9 @@ module.exports = (opts) ->
     compress: true
     jpegtran:
       progressive: true
-    optipng:
-      optimizationLevel: 7
+    pngquant:
+      quality: '65-80'
+      speed: 4
     gifsicle:
       interlaced: true
     svgo: {}
@@ -184,7 +186,7 @@ module.exports = (opts) ->
         .src(files)
         .dest(out)
         .use( Imagemin.gifsicle(opt.gifsicle) )
-        .use( Imagemin.optipng(opt.optipng) )
+        .use( pngquant(opt.pngquant) )
         .use( Imagemin.jpegtran(opt.jpegtran) )
         .use( Imagemin.svgo(opt.svgo) )
         .run((err, compressed) ->
