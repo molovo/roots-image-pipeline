@@ -4,6 +4,7 @@ _           = require 'lodash'
 minimatch   = require 'minimatch'
 Imagemin    = require 'imagemin'
 pngquant    = require 'imagemin-pngquant'
+jpegoptim   = require 'imagemin-jpegoptim'
 RootsUtil   = require 'roots-util'
 yaml        = require 'js-yaml'
 gm          = require 'gm'
@@ -14,8 +15,9 @@ module.exports = (opts) ->
     manifest: false
     out: 'img'
     compress: true
-    jpegtran:
+    jpegoptim:
       progressive: true
+      max: 80
     pngquant:
       quality: '65-80'
       speed: 4
