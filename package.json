@@ -1,6 +1,6 @@
 {
   "name": "roots-image-pipeline",
-  "version": "0.1.4-alpha.2",
+  "version": "0.1.5",
   "author": "James Dinsdale <hi@molovo.co>",
   "description": "roots extension for handling images in production builds",
   "license": "MIT",
