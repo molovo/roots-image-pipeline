@@ -5,25 +5,32 @@ minimatch   = require 'minimatch'
 Imagemin    = require 'imagemin'
 pngquant    = require 'imagemin-pngquant'
 jpegoptim   = require 'imagemin-jpegoptim'
+webp        = require 'imagemin-webp'
 RootsUtil   = require 'roots-util'
 yaml        = require 'js-yaml'
 gm          = require 'gm'
 
 module.exports = (opts) ->
-  opt = _.defaults opts,
+  opt = _.defaultsDeep opts,
     files: ['assets/img/**']
     manifest: false
     out: 'img'
     compress: true
-    jpegoptim:
-      progressive: true
-      max: 80
-    pngquant:
-      quality: '65-80'
-      speed: 4
-    gifsicle:
-      interlaced: true
-    svgo: {}
+    opts:
+      jpegoptim:
+        progressive: true
+        max: 70
+      pngquant:
+        quality: '50-70'
+        speed: 1
+      gifsicle:
+        interlaced: true
+      svgo: {}
+      webp:
+        quality: 70
+        alphaQuality: 50
+        lossless: false
+    output_webp: false
 
   class ImagePipeline
 
@@ -40,10 +47,11 @@ module.exports = (opts) ->
     ###
 
     constructor: (@roots) ->
-      @category = 'imagePipeline'
+      @category = 'images'
       @file_map = {}
+      @file_queue = {}
       @util = new RootsUtil(@roots)
-      @helpers = new RootsUtil.Helpers(base: path.join(__dirname, 'public'))
+      @helpers = new RootsUtil.Helpers(base: @roots.root)
 
       # Check for a manifest file
       if opt.manifest
@@ -112,8 +120,8 @@ module.exports = (opts) ->
 
             if image_opt.retina
               resize_opts_2x =
-                width: size.width * 2
-                height: size.height * 2
+                width: (size.width * 2 if size.width?)
+                height: (size.height * 2 if size.height?)
 
               ext_2x = "#{size_string}-@2X#{path.extname(file_path)}"
               resized_2x = file_path.replace(path.extname(file_path), ext_2x)
@@ -148,6 +156,7 @@ module.exports = (opts) ->
     ###
 
     fs: ->
+      category: 'images'
       extract: true
       ordered: true
       detect: (f) => _.any(@files, minimatch.bind(@, f.relative))
@@ -168,9 +177,12 @@ module.exports = (opts) ->
       after: (ctx) =>
         if not opt.out then return
 
+        if !Array.isArray @files
+          @files = [@files]
+
         if opt.compress
           for matcher in @files
-            compress_images @files, path.join(@roots.config.output, opt.out)
+            compress_images matcher, path.join(@roots.config.output, opt.out)
 
     ###*
      * Pass an image through Imagemin plugins to increase compression
@@ -179,32 +191,56 @@ module.exports = (opts) ->
      *
      * @method  compress_images
      *
-     * @param {String} files  A minimatch string matching input files
-     * @param {String} out    Output folder to store images in
+     * @param {String|Buffer} files  A minimatch string matching input files,
+     *                               or a file buffer
+     * @param {String}        out    Output folder to store images in
     ###
 
     compress_images = (files, out) ->
       new Imagemin()
-        .src(files)
-        .dest(out)
-        .use( Imagemin.gifsicle(opt.gifsicle) )
-        .use( pngquant(opt.pngquant) )
-        .use( Imagemin.jpegtran(opt.jpegtran) )
-        .use( Imagemin.svgo(opt.svgo) )
-        .run((err, compressed) ->
+        .src files
+        .dest out
+        .use jpegoptim(opt.opts.jpegoptim)
+        .use pngquant(opt.opts.pngquant)
+        .use Imagemin.gifsicle(opt.opts.gifsicle)
+        .use Imagemin.svgo(opt.opts.svgo)
+        .run (err, compressed) ->
           if err
-            console.log err
-        )
+            return console.log 'Image compression error: ', files, ' - ', err
+
+          if opt.output_webp
+            convert_to_webp.call @, files, out
+
+    ###*
+     * Pass an image through Imagemin to convert to webp
+     *
+     * TODO: Add ability to specify options for these
+     *
+     * @method  compress_images
+     *
+     * @param {String|Buffer} files  A minimatch string matching input files,
+     *                               or a file buffer
+     * @param {String}        out    Output folder to store images in
+    ###
+
+    convert_to_webp = (files, out) ->
+      new Imagemin()
+        .src files
+        .dest out
+        .use webp(opt.opts.webp)
+        .run (err, converted) ->
+          if err
+            return console.log 'WebP conversion error: ', files, ' - ', err
 
     ###*
      * Resize the provided image, and store at the path specified in 'out'
      *
      * @method  resize_image
      *
-     * @param {String}    filename  The input filename
-     * @param {String}    out       The output filename
-     * @param {Object}    opts      Resize options
-     * @param {Function}  cb        A callback function
+     * @param {String|Buffer}  filename  The input file
+     * @param {String}         out       The output file
+     * @param {Object}         opts      Resize options
+     * @param {Function}       cb        A callback function
     ###
 
     resize_image = (filename, out, opts, cb) ->
@@ -213,10 +249,18 @@ module.exports = (opts) ->
         height: false
         prefix: ''
 
-      gm(filename)
-        .resize(resize_opt.width, resize_opt.height)
-        .noProfile()
-        .write(out, (err) ->
-          if err
-            return console.log err
-        )
+      process = =>
+        if !@helpers.file.exists(filename)
+          return setTimeout process, 1000
+
+        gm(filename)
+          .resize resize_opt.width, resize_opt.height
+          .noProfile()
+          .write out, (err) ->
+            if err
+              return console.log 'Resize error: ', filename, out, ' - ', err
+
+            if opt.compress
+              compress_images.call @, out, path.dirname(out)
+
+      setTimeout process, 1000
