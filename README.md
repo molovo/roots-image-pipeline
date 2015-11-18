@@ -84,13 +84,49 @@ Options to be passed into imagemin plugins. Only does anything useful when compr
 ```coffeescript
 # Defaults
 opts:
-  jpegtran:
+  jpegoptim:
     progressive: true
-  optipng:
-    optimizationLevel: 7
+    max: 70
+  pngquant:
+    quality: '50-70'
+    speed: 1
   gifsicle:
     interlaced: true
   svgo: {}
+  webp:
+    quality: 70
+    alphaQuality: 50
+    lossless: false
+```
+
+##### output_webp
+When true, after an image is passed through the compressor, a new .webp image is created in the output directory, alongside the matching jpg/png. Default is `false`.
+
+> Caveat: Converting some large png images with high levels of transparency can occasionally leave you with a webp image far larger than the original png. Use with caution.
+
+To conditionally server webp images to those browsers who can display them, add the following to your nginx configuration:
+```nginx
+http {
+  ...
+
+  map $http_accept $webp_suffix {
+    default "";
+    "~*webp" ".webp";
+  }
+
+  ...
+}
+
+server {
+  ...
+
+  # Load webp images instead of jpg/png if browser headers indicate support and files exist
+  location ~* ^(?P<basename>.+)\.(jpg|jpeg|png)$ {
+    try_files $basename$webp_suffix $uri =404;
+  }
+
+  ...
+}
 ```
 
 Any option accepted by the various imagemin plugins can be passed through here.
