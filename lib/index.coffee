@@ -16,6 +16,7 @@ module.exports = (opts) ->
     manifest: false
     out: 'img'
     compress: true
+    resize: true
     opts:
       jpegoptim:
         progressive: true
@@ -86,7 +87,7 @@ module.exports = (opts) ->
         file_path = path.join image_opt.prefix, filename
 
         # If no sizes are specified, just use the default
-        if !image_opt.sizes
+        if !opt.resize || !image_opt.sizes
           "<img src='/#{file_path}'>"
 
         # Loop through the sizes array
