@@ -88,7 +88,7 @@ module.exports = (opts) ->
 
         # If no sizes are specified, just use the default
         if !opt.resize || !image_opt.sizes
-          "<img src='/#{file_path}'>"
+          return "<img src='/#{file_path}'>"
 
         # Loop through the sizes array
         @picture = []
