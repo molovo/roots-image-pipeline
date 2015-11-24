@@ -175,7 +175,7 @@ module.exports = (opts) ->
     ###
 
     category_hooks: ->
-      after: (ctx) =>
+      after: () =>
         if not opt.out then return
 
         if !Array.isArray @files
@@ -187,8 +187,6 @@ module.exports = (opts) ->
 
     ###*
      * Pass an image through Imagemin plugins to increase compression
-     *
-     * TODO: Add ability to specify options for these
      *
      * @method  compress_images
      *
@@ -205,7 +203,7 @@ module.exports = (opts) ->
         .use pngquant(opt.opts.pngquant)
         .use Imagemin.gifsicle(opt.opts.gifsicle)
         .use Imagemin.svgo(opt.opts.svgo)
-        .run (err, compressed) ->
+        .run (err) ->
           if err
             return console.log 'Image compression error: ', files, ' - ', err
 
@@ -215,9 +213,7 @@ module.exports = (opts) ->
     ###*
      * Pass an image through Imagemin to convert to webp
      *
-     * TODO: Add ability to specify options for these
-     *
-     * @method  compress_images
+     * @method  convert_to_webp
      *
      * @param {String|Buffer} files  A minimatch string matching input files,
      *                               or a file buffer
@@ -229,7 +225,7 @@ module.exports = (opts) ->
         .src files
         .dest out
         .use webp(opt.opts.webp)
-        .run (err, converted) ->
+        .run (err) ->
           if err
             return console.log 'WebP conversion error: ', files, ' - ', err
 
@@ -244,7 +240,7 @@ module.exports = (opts) ->
      * @param {Function}       cb        A callback function
     ###
 
-    resize_image = (filename, out, opts, cb) ->
+    resize_image = (filename, out, opts) ->
       resize_opt = _.defaults opts,
         width: false
         height: false
