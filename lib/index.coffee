@@ -57,7 +57,7 @@ module.exports = (opts) ->
       # Check for a manifest file
       if opt.manifest
         @roots.config.ignores.push(opts.manifest)
-        @manifest = load_manifest_file.call(@, opts.manifest)
+        @manifest = @load_manifest_file.call(@, opts.manifest)
 
       # Use the manifest, or the passed-in files array
       @files = @manifest or opts.files
@@ -82,13 +82,20 @@ module.exports = (opts) ->
           retina: true     # Include @2X images
           prefix: opt.out  # File path prefix
           sizes: false     # Optional array containing source sizes
+          attributes: {}   # HTML attributes
 
         # Get the file path for rendering in browser
         file_path = path.join image_opt.prefix, filename
 
         # If no sizes are specified, just use the default
-        if !opt.resize || !image_opt.sizes
-          return "<img src='/#{file_path}'>"
+        if not opt.resize or not image_opt.sizes
+          # Loop through attributes and add them
+          attrs = ""
+          for key, value of image_opt.attributes
+            attrs += " #{key}='#{value}'"
+
+          # Return the image string
+          return "<img src='/#{file_path}' #{attrs}>"
 
         # Loop through the sizes array
         @picture = []
@@ -100,7 +107,7 @@ module.exports = (opts) ->
             )
 
             # Build the filename to use for the new, resized file
-            size_string = ""
+            size_string = ''
             size_string += "-#{size.width}w" if size.width
             size_string += "-#{size.height}h" if size.height
 
@@ -119,6 +126,8 @@ module.exports = (opts) ->
             # Trigger the resize asynchronously
             resize_image.call @, input, output, resize_opts
 
+            # If retina is true, generate an additional @2X asset
+            # and add it to our srcset
             if image_opt.retina
               resize_opts_2x =
                 width: (size.width * 2 if size.width?)
@@ -135,8 +144,14 @@ module.exports = (opts) ->
               resize_image.call @, input, output_2x, resize_opts_2x
 
             # Render a basic image tag for the fallback
-            if size.media == 'fallback'
-              return @picture.push "<img src='/#{resized}'>"
+            if size.media is 'fallback'
+              # Loop through attributes and add them
+              attrs = ""
+              for key, value of image_opt.attributes
+                attrs += " #{key}='#{value}'"
+
+              # Return the fallback image
+              return @picture.push "<img src='/#{resized}' #{attrs}>"
 
             # Add a source element for each of the provided sizes
             srcset = "/#{resized} 1x"
@@ -144,7 +159,7 @@ module.exports = (opts) ->
 
             source = "<source srcset='#{srcset}'"
             source += " media='#{size.media}'" if size.media?
-            source += ">"
+            source += '>'
 
             @picture.push source
           )(file_path, size)
@@ -166,7 +181,7 @@ module.exports = (opts) ->
      * Load the manifest file for this plugin
     ###
 
-    load_manifest_file = (f) ->
+    load_manifest_file: (f) =>
       res = yaml.safeLoad(fs.readFileSync(path.join(@roots.root, f), 'utf8'))
       res.map((m) -> path.join(path.dirname(f), m))
 
@@ -178,7 +193,7 @@ module.exports = (opts) ->
       after: () =>
         if not opt.out then return
 
-        if !Array.isArray @files
+        if not Array.isArray @files
           @files = [@files]
 
         if opt.compress
@@ -203,7 +218,7 @@ module.exports = (opts) ->
         .use pngquant(opt.opts.pngquant)
         .use Imagemin.gifsicle(opt.opts.gifsicle)
         .use Imagemin.svgo(opt.opts.svgo)
-        .run (err) ->
+        .run (err) =>
           if err
             return console.log 'Image compression error: ', files, ' - ', err
 
@@ -247,13 +262,13 @@ module.exports = (opts) ->
         prefix: ''
 
       process = =>
-        if !@helpers.file.exists(filename)
+        if not @helpers.file.exists(filename)
           return setTimeout process, 1000
 
         gm(filename)
           .resize resize_opt.width, resize_opt.height
           .noProfile()
-          .write out, (err) ->
+          .write out, (err) =>
             if err
               return console.log 'Resize error: ', filename, out, ' - ', err
 
