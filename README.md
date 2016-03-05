@@ -104,7 +104,7 @@ When true, after an image is passed through the compressor, a new .webp image is
 
 > Caveat: Converting some large png images with high levels of transparency can occasionally leave you with a webp image far larger than the original png. Use with caution.
 
-To conditionally server webp images to those browsers who can display them, add the following to your nginx configuration:
+To conditionally serve webp images to those browsers who can display them, add the following to your nginx configuration:
 ```nginx
 http {
   ...
