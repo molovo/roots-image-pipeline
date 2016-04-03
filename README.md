@@ -1,6 +1,8 @@
 Roots Image Pipeline
 =================
 
+[![Join the chat at https://gitter.im/molovo/roots-image-pipeline](https://badges.gitter.im/molovo/roots-image-pipeline.svg)](https://gitter.im/molovo/roots-image-pipeline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Roots image pipeline is an asset pipeline for images which optionally compresses using imagemin and/or generates multiple sizes for use in HTML `<picture>` elements.
 
 > **Note:** This project is in early development, and versioning is a little different. [Read this](http://markup.im/#q4_cRZ1Q) for more details.
