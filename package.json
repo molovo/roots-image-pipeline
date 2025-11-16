@@ -18,9 +18,9 @@
   },
   "main": "lib",
   "dependencies": {
-    "js-yaml": "3.x",
-    "lodash": "3.x",
-    "minimatch": "2.x",
+    "js-yaml": "4.x",
+    "lodash": "4.x",
+    "minimatch": "10.x",
     "roots-util": "0.1.x",
     "imagemin": "4.0.x",
     "imagemin-pngquant": "4.2.x",
